@@ -19,6 +19,8 @@ protocol PickerDelegate: AnyObject {
     func picker(_ picker: PickerViewController, didPick vibe: Vibe, caption: String)
     /// Apply a reaction to the message the user tapped in the transcript.
     func picker(_ picker: PickerViewController, didReact reaction: Reaction, to state: VibeState, session: MSSession?)
+    /// Open the full-screen swipeable video feed.
+    func pickerDidRequestFeed(_ picker: PickerViewController)
 }
 
 final class PickerViewController: UIViewController {
@@ -55,7 +57,21 @@ final class PickerViewController: UIViewController {
     // MARK: Compose mode — pick a vibe
 
     private func buildComposeUI() {
-        let title = makeTitle("Pick a vibe to send")
+        // Headline action: jump into the swipeable video feed.
+        var feedConfig = UIButton.Configuration.filled()
+        feedConfig.title = "▶  Watch Feed"
+        feedConfig.baseBackgroundColor = .label
+        feedConfig.baseForegroundColor = .systemBackground
+        feedConfig.cornerStyle = .large
+        let feedButton = UIButton(configuration: feedConfig)
+        feedButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        feedButton.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.pickerDidRequestFeed(self)
+        }, for: .touchUpInside)
+        stack.addArrangedSubview(feedButton)
+
+        let title = makeTitle("…or send a vibe")
         stack.addArrangedSubview(title)
 
         // Rows of 3 buttons.

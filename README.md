@@ -17,6 +17,11 @@ app *into* it, and Messages renders **your view controller inside the bubble.**
 
 ## What it does
 
+- **▶ Watch Feed — a TikTok-style vertical video feed** inside iMessage. Tap
+  "Watch Feed" to open a full-screen swipeable feed (autoplaying, looping,
+  tap-to-like, tap-to-unmute), and hit send on any clip to drop a preview
+  bubble into the chat. Tapping that bubble opens the feed at that video.
+  (Runs on free public sample clips out of the box — swap in your own.)
 - A **picker** in the iMessage app drawer: choose a "vibe" (emoji + animated
   gradient) and send it.
 - The sent bubble is a **live, animated `MSMessageLiveLayout`** — a color-

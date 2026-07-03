@@ -18,6 +18,9 @@ final class MessagesViewController: MSMessagesAppViewController {
 
     private var currentChild: UIViewController?
 
+    /// Set when the user taps "Watch Feed" from the picker (no bubble selected).
+    private var wantsFeed = false
+
     // MARK: Lifecycle
 
     override func willBecomeActive(with conversation: MSConversation) {
@@ -37,27 +40,65 @@ final class MessagesViewController: MSMessagesAppViewController {
         let controller: UIViewController
 
         if presentationStyle == .transcript {
-            // We're a bubble in the conversation. Draw from the selected message.
-            let state = VibeState(url: conversation.selectedMessage?.url)
-                ?? VibeState(vibeID: "hype", caption: "Vibe")
-            controller = BubbleViewController(state: state) { [weak self] in
-                // Tapped inside the bubble → expand so we can compose a reaction.
-                self?.requestPresentationStyle(.expanded)
-            }
+            controller = transcriptController(for: conversation)
+        } else if presentationStyle == .expanded, let feed = feedControllerIfNeeded(for: conversation) {
+            controller = feed
         } else {
-            // The user opened our app to compose — or to react after a bubble tap.
-            let picker = PickerViewController()
-            picker.delegate = self
-
-            // If a bubble is selected, we're here to react to it, not compose fresh.
-            if let selected = conversation.selectedMessage,
-               let state = VibeState(url: selected.url) {
-                picker.reactingTo = (state: state, session: selected.session)
-            }
-            controller = picker
+            controller = composeOrReactController(for: conversation)
         }
 
         swap(to: controller)
+    }
+
+    /// A bubble rendered inline in the chat. Could be a vibe or a video preview.
+    private func transcriptController(for conversation: MSConversation) -> UIViewController {
+        let url = conversation.selectedMessage?.url
+
+        if let video = VideoState(url: url) {
+            return VideoBubbleController(state: video) { [weak self] in
+                // Tap → expand into the full feed at this clip.
+                self?.requestPresentationStyle(.expanded)
+            }
+        }
+
+        let vibe = VibeState(url: url) ?? VibeState(vibeID: "hype", caption: "Vibe")
+        return BubbleViewController(state: vibe) { [weak self] in
+            self?.requestPresentationStyle(.expanded)
+        }
+    }
+
+    /// The TikTok-style feed — shown when a video bubble was tapped, or when the
+    /// user asked for it. Returns nil when the feed isn't what's wanted.
+    private func feedControllerIfNeeded(for conversation: MSConversation) -> UIViewController? {
+        var startIndex: Int?
+        if let video = VideoState(url: conversation.selectedMessage?.url) {
+            startIndex = video.item.index          // opened by tapping a video bubble
+        } else if wantsFeed {
+            startIndex = 0                          // opened via "Watch Feed"
+        }
+        guard let index = startIndex else { return nil }
+
+        let feed = FeedViewController(startAt: index)
+        feed.onSend = { [weak self] item in
+            guard let self, let conversation = self.activeConversation else { return }
+            conversation.insert(VideoState(item: item).makeMessage()) { error in
+                if let error { NSLog("Video insert failed: \(error)") }
+            }
+            self.wantsFeed = false
+            self.requestPresentationStyle(.compact)
+        }
+        return feed
+    }
+
+    /// The compose grid, or the reaction picker if a vibe bubble is selected.
+    private func composeOrReactController(for conversation: MSConversation) -> UIViewController {
+        let picker = PickerViewController()
+        picker.delegate = self
+        if let selected = conversation.selectedMessage,
+           let state = VibeState(url: selected.url) {
+            picker.reactingTo = (state: state, session: selected.session)
+        }
+        return picker
     }
 
     /// Swap the visible child view controller, cleaning up the old one.
@@ -99,5 +140,11 @@ extension MessagesViewController: PickerDelegate {
             if let error { NSLog("Reaction insert failed: \(error)") }
         }
         requestPresentationStyle(.compact)
+    }
+
+    /// User tapped "Watch Feed" — expand into the swipeable video feed.
+    func pickerDidRequestFeed(_ picker: PickerViewController) {
+        wantsFeed = true
+        requestPresentationStyle(.expanded)
     }
 }
