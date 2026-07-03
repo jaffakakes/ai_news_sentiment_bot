@@ -21,6 +21,8 @@ protocol PickerDelegate: AnyObject {
     func picker(_ picker: PickerViewController, didReact reaction: Reaction, to state: VibeState, session: MSSession?)
     /// Open the full-screen swipeable video feed.
     func pickerDidRequestFeed(_ picker: PickerViewController)
+    /// Open the agentic concierge composer.
+    func pickerDidRequestConcierge(_ picker: PickerViewController)
 }
 
 final class PickerViewController: UIViewController {
@@ -70,6 +72,18 @@ final class PickerViewController: UIViewController {
             self.delegate?.pickerDidRequestFeed(self)
         }, for: .touchUpInside)
         stack.addArrangedSubview(feedButton)
+
+        // Agentic concierge: describe a task, an AI agent proposes options.
+        var conciergeConfig = UIButton.Configuration.tinted()
+        conciergeConfig.title = "🧭  Ask Concierge"
+        conciergeConfig.cornerStyle = .large
+        let conciergeButton = UIButton(configuration: conciergeConfig)
+        conciergeButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        conciergeButton.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.pickerDidRequestConcierge(self)
+        }, for: .touchUpInside)
+        stack.addArrangedSubview(conciergeButton)
 
         let title = makeTitle("…or send a vibe")
         stack.addArrangedSubview(title)

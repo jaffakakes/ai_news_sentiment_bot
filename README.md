@@ -17,6 +17,12 @@ app *into* it, and Messages renders **your view controller inside the bubble.**
 
 ## What it does
 
+- **🧭 Ask Concierge — an AI agent that completes tasks *with* you and a friend
+  in the thread.** Describe a goal ("Airbnb in Lisbon, 2 nights, walkable, under
+  €150"); a Claude agent researches with tools, proposes a shortlist as an
+  interactive bubble, **both people vote**, and it finalizes on confirmation.
+  The agent proposes — a human always confirms and sends. Brain lives in
+  [`concierge/`](concierge/) (Python + Claude Opus 4.8, tools mocked out of the box).
 - **▶ Watch Feed — a TikTok-style vertical video feed** inside iMessage. Tap
   "Watch Feed" to open a full-screen swipeable feed (autoplaying, looping,
   tap-to-like, tap-to-unmute), and hit send on any clip to drop a preview
@@ -71,7 +77,11 @@ redraw. That's the whole architecture in one sentence.
 | `GradientVibeView.swift` | The custom-drawn animated "media" half (gradient + bobbing emoji). Swap its guts for `AVPlayerLayer` (video) or `WKWebView` (HTML) later. |
 | `VibeState.swift` | **The bridge.** Encodes/decodes bubble state ⇄ `message.url`, and builds the `MSMessage` carrying both the live layout and the fallback template. |
 | `Vibe.swift` | Plain-data model + the built-in vibe catalog + a hex-color helper. |
-| `FallbackRenderer.swift` | Renders the static image shown to people without the app. |
+| `FallbackRenderer.swift` | Renders the static images shown to people without the app. |
+| `FeedItem/VideoCell/FeedViewController/VideoState/VideoBubbleController.swift` | The TikTok-style video feed and its share-a-clip bubbles. |
+| `ConciergeState.swift` | **Agentic layer.** Client mirror of the backend contract; encodes the agent's shortlist + votes into the message. |
+| `ConciergeClient.swift` | Thin HTTPS client to the `concierge/` backend. |
+| `ConciergeBubbleController.swift` / `ConciergeInteraction.swift` | The concierge bubble in-transcript, plus the expanded compose / vote / confirm UI. |
 | `Info.plist` | Marks this bundle as an iMessage extension (payload-provider point + principal class). |
 
 ---
@@ -101,6 +111,28 @@ Xcode and drop these sources in. ~5 minutes:
 To try it with a **real friend**, run on a physical device signed with your
 Apple ID (free tier works for personal testing); to send to others you'll need
 the app distributed via TestFlight/App Store.
+
+### Running the Concierge agent
+
+The 🧭 Concierge feature needs its backend running (see [`concierge/`](concierge/)):
+
+```bash
+cd concierge && pip install -r requirements.txt
+export ANTHROPIC_API_KEY=sk-ant-...        # or: ant auth login
+uvicorn server:app --reload --port 8000
+```
+
+For the **Simulator** to reach a server on the same Mac over `http://localhost`,
+add this App Transport Security exception to the **MessagesExtension Info.plist**
+(local dev only — production should use HTTPS, which needs no exception):
+
+```xml
+<key>NSAppTransportSecurity</key>
+<dict>
+  <key>NSAllowsLocalNetworking</key>
+  <true/>
+</dict>
+```
 
 ---
 

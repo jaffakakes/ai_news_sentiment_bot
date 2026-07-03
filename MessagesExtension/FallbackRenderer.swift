@@ -96,4 +96,32 @@ enum FallbackRenderer {
             line.draw(at: CGPoint(x: (size.width - s.width) / 2, y: size.height - 30), withAttributes: attrs)
         }
     }
+
+    /// Poster for a concierge bubble — the agent's headline pick, used as the
+    /// preview image and the no-app fallback.
+    static func conciergePoster(for state: ConciergeState, size: CGSize = CGSize(width: 300, height: 200)) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { ctx in
+            let colors = [UIColor(hex: "1D2671").cgColor, UIColor(hex: "C33764").cgColor]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                      colors: colors as CFArray, locations: [0, 1])!
+            ctx.cgContext.drawLinearGradient(
+                gradient, start: .zero,
+                end: CGPoint(x: size.width, y: size.height), options: [])
+
+            let emoji = (state.confirmedID != nil ? "✅" : "🧭") as NSString
+            emoji.draw(at: CGPoint(x: 16, y: 14),
+                       withAttributes: [.font: UIFont.systemFont(ofSize: 40)])
+
+            let title = (state.topPick?.title ?? "Concierge") as NSString
+            title.draw(at: CGPoint(x: 16, y: 74), withAttributes: [
+                .font: UIFont.boldSystemFont(ofSize: 20), .foregroundColor: UIColor.white,
+            ])
+
+            let sub = state.message as NSString
+            sub.draw(in: CGRect(x: 16, y: 108, width: size.width - 32, height: 70), withAttributes: [
+                .font: UIFont.systemFont(ofSize: 14), .foregroundColor: UIColor(white: 1, alpha: 0.85),
+            ])
+        }
+    }
 }

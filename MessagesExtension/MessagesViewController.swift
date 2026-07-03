@@ -21,6 +21,9 @@ final class MessagesViewController: MSMessagesAppViewController {
     /// Set when the user taps "Watch Feed" from the picker (no bubble selected).
     private var wantsFeed = false
 
+    /// Set when the user taps "Ask Concierge" from the picker.
+    private var wantsConcierge = false
+
     // MARK: Lifecycle
 
     override func willBecomeActive(with conversation: MSConversation) {
@@ -41,6 +44,8 @@ final class MessagesViewController: MSMessagesAppViewController {
 
         if presentationStyle == .transcript {
             controller = transcriptController(for: conversation)
+        } else if presentationStyle == .expanded, let concierge = conciergeControllerIfNeeded(for: conversation) {
+            controller = concierge
         } else if presentationStyle == .expanded, let feed = feedControllerIfNeeded(for: conversation) {
             controller = feed
         } else {
@@ -50,9 +55,44 @@ final class MessagesViewController: MSMessagesAppViewController {
         swap(to: controller)
     }
 
-    /// A bubble rendered inline in the chat. Could be a vibe or a video preview.
+    /// The concierge expanded UI: vote/confirm on a tapped shortlist, or compose
+    /// a new request via "Ask Concierge". Returns nil when neither applies.
+    private func conciergeControllerIfNeeded(for conversation: MSConversation) -> UIViewController? {
+        if let state = ConciergeState(url: conversation.selectedMessage?.url) {
+            let session = conversation.selectedMessage?.session
+            return ConciergeDetailController(
+                state: state, session: session,
+                onVote: { [weak self] updated, session in self?.insertConcierge(updated, session: session) },
+                onConfirm: { [weak self] updated, session in self?.insertConcierge(updated, session: session) }
+            )
+        }
+        if wantsConcierge {
+            let composer = ConciergeComposerController()
+            composer.delegate = self
+            return composer
+        }
+        return nil
+    }
+
+    private func insertConcierge(_ state: ConciergeState, session: MSSession?) {
+        guard let conversation = activeConversation else { return }
+        conversation.insert(state.makeMessage(session: session)) { error in
+            if let error { NSLog("Concierge insert failed: \(error)") }
+        }
+        wantsConcierge = false
+        requestPresentationStyle(.compact)
+    }
+
+    /// A bubble rendered inline in the chat. Could be a vibe, a video, or a
+    /// concierge shortlist.
     private func transcriptController(for conversation: MSConversation) -> UIViewController {
         let url = conversation.selectedMessage?.url
+
+        if let concierge = ConciergeState(url: url) {
+            return ConciergeBubbleController(state: concierge) { [weak self] in
+                self?.requestPresentationStyle(.expanded)
+            }
+        }
 
         if let video = VideoState(url: url) {
             return VideoBubbleController(state: video) { [weak self] in
@@ -146,5 +186,20 @@ extension MessagesViewController: PickerDelegate {
     func pickerDidRequestFeed(_ picker: PickerViewController) {
         wantsFeed = true
         requestPresentationStyle(.expanded)
+    }
+
+    /// User tapped "Ask Concierge" — expand into the agent composer.
+    func pickerDidRequestConcierge(_ picker: PickerViewController) {
+        wantsConcierge = true
+        requestPresentationStyle(.expanded)
+    }
+}
+
+// MARK: - ConciergeComposerDelegate
+
+extension MessagesViewController: ConciergeComposerDelegate {
+    /// The agent returned a shortlist — stage it as a bubble in the input field.
+    func composer(_ c: ConciergeComposerController, produced state: ConciergeState) {
+        insertConcierge(state, session: nil)
     }
 }
