@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EventCategory {
+  TOKEN_BURN
+  LISTING
+  HACK
+  PARTNERSHIP
+  WHALE
+  ETF
+  MACRO
+  UPGRADE
+  OTHER
+}
+
+enum Market {
+  SPOT
+  PERP
+}
+
+enum Direction {
+  LONG
+  SHORT
+}
+
+enum ExitReason {
+  TAKE_PROFIT
+  STOP_LOSS
+  MANUAL_EXIT
+  LIQUIDATED
+  WINDOW_END
+}
+
+model Event {
+  id           String        @id @default(cuid())
+  headline     String?
+  url          String?
+  source       String?
+  ticker       String
+  timestamp    DateTime // always UTC
+  timezone     String // IANA name as entered, display-only
+  exchange     String        @default("binance")
+  market       Market
+  category     EventCategory @default(OTHER)
+  priceAtEvent Decimal       @db.Decimal(38, 18)
+  notes        String?
+  createdAt    DateTime      @default(now())
+
+  stats       EventStats?
+  simulations TradeSimulation[]
+
+  @@index([ticker])
+  @@index([timestamp])
+  @@index([category])
+  @@index([source])
+  @@index([exchange])
+}
+
+model EventStats {
+  id                     String   @id @default(cuid())
+  eventId                String   @unique
+  event                  Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  lookbackMinutes        Int
+  lookforwardMinutes     Int
+  priceBefore            Decimal  @db.Decimal(38, 18)
+  highAfter              Decimal  @db.Decimal(38, 18)
+  highAfterPct           Decimal  @db.Decimal(20, 10)
+  lowAfter               Decimal  @db.Decimal(38, 18)
+  lowAfterPct            Decimal  @db.Decimal(20, 10)
+  timeToHighMs           Int
+  timeToLowMs            Int
+  return1mPct            Decimal? @db.Decimal(20, 10)
+  return5mPct            Decimal? @db.Decimal(20, 10)
+  return15mPct           Decimal? @db.Decimal(20, 10)
+  return30mPct           Decimal? @db.Decimal(20, 10)
+  return60mPct           Decimal? @db.Decimal(20, 10)
+  volumeBefore           Decimal  @db.Decimal(38, 8)
+  volumeAfter            Decimal  @db.Decimal(38, 8)
+  volumeChangePct        Decimal? @db.Decimal(20, 10)
+  avgCandleRangePct      Decimal  @db.Decimal(20, 10)
+  postEventVolatilityPct Decimal? @db.Decimal(20, 10)
+  dataComplete           Boolean  @default(true)
+  createdAt              DateTime @default(now())
+}
+
+model TradeSimulation {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // inputs
+  direction      Direction
+  accountSize    Decimal   @db.Decimal(38, 18)
+  margin         Decimal   @db.Decimal(38, 18)
+  leverage       Decimal   @db.Decimal(10, 2)
+  entryPrice     Decimal   @db.Decimal(38, 18)
+  entryTime      DateTime
+  exitPrice      Decimal?  @db.Decimal(38, 18)
+  stopLoss       Decimal?  @db.Decimal(38, 18)
+  takeProfit     Decimal?  @db.Decimal(38, 18)
+  takerFeePct    Decimal   @db.Decimal(10, 6)
+  makerFeePct    Decimal   @db.Decimal(10, 6)
+  slippagePct    Decimal   @db.Decimal(10, 6)
+  maintMarginPct Decimal   @db.Decimal(10, 6)
+
+  // outputs — snapshot at simulation time, never recomputed on read
+  effectiveEntryPrice Decimal    @db.Decimal(38, 18)
+  effectiveExitPrice  Decimal    @db.Decimal(38, 18)
+  positionSizeQuote   Decimal    @db.Decimal(38, 18)
+  quantityBase        Decimal    @db.Decimal(38, 18)
+  liquidationPrice    Decimal    @db.Decimal(38, 18)
+  exitReason          ExitReason
+  exitTime            DateTime?
+  timeInTradeMs       Int?
+  ambiguousCandle     Boolean    @default(false)
+  grossPnl            Decimal    @db.Decimal(38, 18)
+  totalFees           Decimal    @db.Decimal(38, 18)
+  netPnl              Decimal    @db.Decimal(38, 18)
+  returnOnMarginPct   Decimal    @db.Decimal(20, 10)
+  returnOnAccountPct  Decimal    @db.Decimal(20, 10)
+  riskRewardRatio     Decimal?   @db.Decimal(20, 10)
+  mfePct              Decimal    @db.Decimal(20, 10)
+  maePct              Decimal    @db.Decimal(20, 10)
+  liquidationBreached Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+
+  @@index([eventId])
+  @@index([createdAt])
+}
