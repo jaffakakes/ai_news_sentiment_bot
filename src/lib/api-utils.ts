@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { MarketProviderError } from "./market/types";
+import { NewsProviderError } from "./news/errors";
 
 export interface ApiError {
   error: { code: string; message: string; details?: unknown };
@@ -73,8 +74,21 @@ export async function parseBody<S extends z.ZodType>(
   return { ok: true, value: result.data };
 }
 
+const NEWS_ERROR_STATUS: Record<NewsProviderError["code"], number> = {
+  BLOCKED_URL: 400,
+  UNSUPPORTED_CONTENT: 422,
+  ACCESS_DENIED: 422,
+  EXTRACTION_INCOMPLETE: 422,
+  NOT_FOUND: 404,
+  FETCH_FAILED: 502,
+  RATE_LIMITED: 429,
+};
+
 /** Map thrown provider/other errors to the API error envelope. */
 export function errorResponse(err: unknown): NextResponse {
+  if (err instanceof NewsProviderError) {
+    return jsonError(NEWS_ERROR_STATUS[err.code], err.code, err.message);
+  }
   if (err instanceof MarketProviderError) {
     switch (err.code) {
       case "INVALID_SYMBOL":
