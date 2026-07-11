@@ -11,10 +11,38 @@ export class ApiClientError extends Error {
     public readonly code: string,
     message: string,
     public readonly status: number,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = "ApiClientError";
   }
+}
+
+/** "takeProfit" → "Take profit" */
+function humanizeField(field: string): string {
+  const spaced = field.replace(/([A-Z])/g, " $1").toLowerCase();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Prefer per-field validation messages (zod fieldErrors in error.details)
+ * over the generic envelope message, so toasts say what is actually wrong.
+ */
+function errorMessage(
+  error: { message: string; details?: unknown } | undefined,
+  status: number,
+): string {
+  if (!error) return `Request failed (HTTP ${status})`;
+  if (error.details && typeof error.details === "object") {
+    const lines = Object.entries(error.details as Record<string, unknown>)
+      .filter(([, messages]) => Array.isArray(messages) && messages.length > 0)
+      .map(
+        ([field, messages]) =>
+          `${humanizeField(field)}: ${(messages as string[])[0]}`,
+      );
+    if (lines.length > 0) return lines.join("; ");
+  }
+  return error.message;
 }
 
 export async function apiFetch<T>(
@@ -38,13 +66,14 @@ export async function apiFetch<T>(
   }
   const envelope = body as {
     data?: T;
-    error?: { code: string; message: string };
+    error?: { code: string; message: string; details?: unknown };
   };
   if (!response.ok || envelope.error) {
     throw new ApiClientError(
       envelope.error?.code ?? "UNKNOWN",
-      envelope.error?.message ?? `Request failed (HTTP ${response.status})`,
+      errorMessage(envelope.error, response.status),
       response.status,
+      envelope.error?.details,
     );
   }
   return envelope.data as T;

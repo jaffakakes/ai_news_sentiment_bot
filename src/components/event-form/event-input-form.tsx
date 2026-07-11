@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { formatInTimeZone } from "date-fns-tz";
 import { TimezoneSelect } from "./timezone-select";
+import { InfoHint } from "@/components/common/info-hint";
+import { HELP } from "@/lib/help-copy";
 import { useTerminalState, type EventParams } from "@/hooks/use-terminal-state";
 import { useCreateEvent } from "@/hooks/use-events";
 import { useExtractNews } from "@/hooks/use-news";
@@ -35,6 +37,32 @@ const CATEGORIES = [
   "MACRO",
   "UPGRADE",
 ] as const;
+
+/** Bare domains like "coindesk.com" get https:// so they pass z.url(). */
+const normalizeUrl = (raw: string): string | undefined => {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+};
+
+function LabelRow({
+  htmlFor,
+  text,
+  hint,
+}: {
+  htmlFor: string;
+  text: string;
+  hint: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{text}</Label>
+      <InfoHint hint={hint} label={`About ${text.toLowerCase()}`} />
+    </div>
+  );
+}
 
 const categoryLabel = (c: string) =>
   c
@@ -159,7 +187,7 @@ export function EventInputForm() {
       lookforwardMinutes: Number(lookforward) || 120,
       headline: headline.trim() || undefined,
       source: source.trim() || undefined,
-      url: url.trim() || undefined,
+      url: normalizeUrl(url),
       notes: notes.trim() || undefined,
       category,
     };
@@ -212,7 +240,11 @@ export function EventInputForm() {
       }}
     >
       <div className="space-y-1.5">
-        <Label htmlFor="news-url">News URL</Label>
+        <LabelRow
+          htmlFor="news-url"
+          text="News URL"
+          hint={HELP.event.newsUrl}
+        />
         <div className="flex gap-1.5">
           <Input
             id="news-url"
@@ -255,7 +287,7 @@ export function EventInputForm() {
       <Separator />
 
       <div className="space-y-1.5">
-        <Label htmlFor="ticker">Ticker</Label>
+        <LabelRow htmlFor="ticker" text="Ticker" hint={HELP.event.ticker} />
         <Input
           id="ticker"
           value={ticker}
@@ -267,7 +299,11 @@ export function EventInputForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="datetime">Event time</Label>
+        <LabelRow
+          htmlFor="datetime"
+          text="Event time"
+          hint={HELP.event.eventTime}
+        />
         <Input
           id="datetime"
           type="datetime-local"
@@ -279,13 +315,17 @@ export function EventInputForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="timezone">Timezone</Label>
+        <LabelRow
+          htmlFor="timezone"
+          text="Timezone"
+          hint={HELP.event.timezone}
+        />
         <TimezoneSelect id="timezone" value={timezone} onChange={setTimezone} />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="market">Market</Label>
+          <LabelRow htmlFor="market" text="Market" hint={HELP.event.market} />
           <Select
             value={market}
             onValueChange={(v) => setMarket(v as MarketType)}
@@ -300,7 +340,11 @@ export function EventInputForm() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="interval">Timeframe</Label>
+          <LabelRow
+            htmlFor="interval"
+            text="Timeframe"
+            hint={HELP.event.timeframe}
+          />
           <Select
             value={interval}
             onValueChange={(v) => setInterval(v as Interval)}
@@ -323,7 +367,11 @@ export function EventInputForm() {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="lookback">Lookback (min)</Label>
+          <LabelRow
+            htmlFor="lookback"
+            text="Lookback (min)"
+            hint={HELP.event.lookback}
+          />
           <Input
             id="lookback"
             type="number"
@@ -335,7 +383,11 @@ export function EventInputForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="lookforward">Forward (min)</Label>
+          <LabelRow
+            htmlFor="lookforward"
+            text="Forward (min)"
+            hint={HELP.event.lookforward}
+          />
           <Input
             id="lookforward"
             type="number"
@@ -355,11 +407,15 @@ export function EventInputForm() {
       <Separator />
 
       <p className="text-xs text-muted-foreground">
-        News details (optional) — used when saving the analysis.
+        What was the news? (optional — saved with your analysis)
       </p>
 
       <div className="space-y-1.5">
-        <Label htmlFor="headline">Headline</Label>
+        <LabelRow
+          htmlFor="headline"
+          text="Headline"
+          hint={HELP.event.headline}
+        />
         <Input
           id="headline"
           value={headline}
@@ -370,7 +426,7 @@ export function EventInputForm() {
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="source">Source</Label>
+          <LabelRow htmlFor="source" text="Source" hint={HELP.event.source} />
           <Input
             id="source"
             value={source}
@@ -379,7 +435,11 @@ export function EventInputForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="category">Category</Label>
+          <LabelRow
+            htmlFor="category"
+            text="Category"
+            hint={HELP.event.category}
+          />
           <Select
             value={category}
             onValueChange={(v) => v !== null && setCategory(v)}
@@ -399,7 +459,7 @@ export function EventInputForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="url">URL</Label>
+        <LabelRow htmlFor="url" text="URL" hint={HELP.event.url} />
         <Input
           id="url"
           type="url"
@@ -410,7 +470,7 @@ export function EventInputForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="notes">Notes</Label>
+        <LabelRow htmlFor="notes" text="Notes" hint={HELP.event.notes} />
         <Textarea
           id="notes"
           value={notes}

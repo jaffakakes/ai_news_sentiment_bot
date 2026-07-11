@@ -7,6 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HELP } from "@/lib/help-copy";
 import type { Interval, MarketType } from "@/lib/market/types";
 import { formatEpochMs } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -50,8 +51,8 @@ export function ChartToolbar({
               Partial data
             </Badge>
           </TooltipTrigger>
-          <TooltipContent className="max-w-64">
-            {partialNote ?? "The exchange returned less data than requested."}
+          <TooltipContent className="max-w-64 text-left leading-relaxed">
+            {partialNote ?? HELP.badges.partialData}
           </TooltipContent>
         </Tooltip>
       )}
@@ -62,23 +63,36 @@ export function ChartToolbar({
       >
         {INTERVALS.map((candidate) => {
           const unsupported = candidate === "1s" && market === "perp";
-          return (
+          const button = (
             <Button
               key={candidate}
               size="sm"
               variant={candidate === interval ? "secondary" : "ghost"}
               className={cn("h-7 px-2 font-mono text-xs", {
-                "opacity-40": unsupported,
+                // pointer-events-none lets the tooltip span receive hover;
+                // native title tooltips never fire on disabled elements.
+                "pointer-events-none opacity-40": unsupported,
               })}
               disabled={unsupported}
-              title={
-                unsupported ? "Binance futures klines start at 1m" : undefined
-              }
               aria-pressed={candidate === interval}
               onClick={() => onIntervalChange(candidate)}
             >
               {candidate}
             </Button>
+          );
+          if (!unsupported) return button;
+          return (
+            <Tooltip key={candidate}>
+              <TooltipTrigger
+                render={<span className="inline-flex" tabIndex={0} />}
+                aria-label="Why 1s is unavailable"
+              >
+                {button}
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64 text-left leading-relaxed">
+                {HELP.badges.oneSecondPerp}
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>

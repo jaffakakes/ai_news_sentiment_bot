@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, ErrorState } from "@/components/common/error-state";
+import { InfoHint } from "@/components/common/info-hint";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HELP } from "@/lib/help-copy";
 import {
   useDeleteSimulation,
   useRecentSimulations,
@@ -69,7 +76,7 @@ export function SimulationsTable({
       ) : !data || data.length === 0 ? (
         <EmptyState
           title="No simulations yet"
-          hint="Save an analysis, then run the trade simulator on it."
+          hint="Save an analysis first, then use the Trade simulator panel to replay a pretend trade — it will show up here."
         />
       ) : (
         <Table>
@@ -82,7 +89,16 @@ export function SimulationsTable({
               <TableHead scope="col" className="text-right">Entry</TableHead>
               <TableHead scope="col">Exit</TableHead>
               <TableHead scope="col" className="text-right">Net PnL</TableHead>
-              <TableHead scope="col" className="text-right">ROM</TableHead>
+              <TableHead scope="col" className="text-right">
+                <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                  Return on margin
+                  <InfoHint
+                    hint={HELP.badges.rom}
+                    label="About return on margin"
+                    className="[&_svg]:size-3"
+                  />
+                </span>
+              </TableHead>
               <TableHead scope="col" aria-label="Actions" />
             </TableRow>
           </TableHeader>
@@ -124,9 +140,19 @@ export function SimulationsTable({
                 <TableCell className="text-xs capitalize">
                   {sim.exitReason.toLowerCase().replace(/_/g, " ")}
                   {sim.ambiguousCandle && (
-                    <span className="ml-1 text-warning" title="TP and SL in the same candle — SL assumed">
-                      ⚠
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger
+                        type="button"
+                        aria-label="About this warning"
+                        className="ml-1 text-warning"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        ⚠
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64 text-left leading-relaxed">
+                        {HELP.badges.ambiguousCandle}
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </TableCell>
                 <TableCell

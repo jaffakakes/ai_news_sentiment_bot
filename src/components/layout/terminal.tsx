@@ -6,6 +6,7 @@ import { EventInputForm } from "@/components/event-form/event-input-form";
 import { EventChartContainer } from "@/components/chart/event-chart-container";
 import type { PriceLevel } from "@/components/chart/event-chart";
 import { ChartToolbar } from "@/components/chart/chart-toolbar";
+import { HowItWorks } from "@/components/chart/how-it-works";
 import { StatsPanel } from "@/components/stats/stats-panel";
 import { SimForm } from "@/components/simulator/sim-form";
 import { SimResults } from "@/components/simulator/sim-results";
@@ -65,12 +66,7 @@ function ChartArea({
   }, [simResult]);
 
   if (!params) {
-    return (
-      <EmptyState
-        title="Enter a ticker and timestamp to generate an event chart"
-        hint="Example: BTCUSDT · 2024-01-10 21:00 UTC — the spot ETF approval"
-      />
-    );
+    return <HowItWorks />;
   }
 
   return (
@@ -102,7 +98,7 @@ function ChartArea({
             title="No candles in this window"
             hint={
               candlesQuery.data?.note ??
-              "The symbol may not have traded on this market at that time."
+              "This coin may not have been trading on this market at that time. Try Spot instead of Perp, or a different date."
             }
           />
         )}
@@ -132,6 +128,10 @@ function SimPanel({
       <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Trade simulator
       </h2>
+      <p className="px-3 pt-2 text-[11px] text-muted-foreground/80">
+        Replay a practice trade with pretend money. Nothing real is bought or
+        sold.
+      </p>
       <SimForm
         defaultEntryPrice={statsQuery.data?.priceAtEvent}
         onResult={onResult}
@@ -154,6 +154,12 @@ function TerminalInner() {
           aria-label="Event input"
           className="min-h-0 overflow-y-auto border-r border-border"
         >
+          <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Event input
+          </h2>
+          <p className="px-3 pt-2 text-[11px] text-muted-foreground/80">
+            Pick a coin and the moment the news broke.
+          </p>
           <EventInputForm />
         </aside>
         <main className="min-h-0 min-w-0 overflow-hidden max-md:min-h-96">

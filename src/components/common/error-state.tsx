@@ -10,7 +10,7 @@ import { ApiClientError } from "@/hooks/api";
  */
 export function ErrorState({
   error,
-  title = "Could not load data",
+  title = "Something went wrong loading data",
 }: {
   error: unknown;
   title?: string;
@@ -30,6 +30,10 @@ export function ErrorState({
       <AlertTriangle className="size-5 text-loss" aria-hidden />
       <p className="text-sm font-medium">{title}</p>
       <p className="max-w-md text-xs text-muted-foreground">{message}</p>
+      <p className="text-xs text-muted-foreground/70">
+        Nothing is broken on your side — try again, or adjust the inputs on
+        the left.
+      </p>
     </div>
   );
 }

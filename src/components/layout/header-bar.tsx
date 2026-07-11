@@ -1,5 +1,13 @@
+"use client";
+
 import { Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HELP } from "@/lib/help-copy";
 
 export function HeaderBar() {
   return (
@@ -9,13 +17,22 @@ export function HeaderBar() {
       <span className="hidden text-xs text-muted-foreground sm:inline">
         Crypto news event analysis &amp; trade simulation
       </span>
-      <Badge
-        variant="outline"
-        className="ml-auto border-warning/40 text-[10px] text-warning"
-        title="This tool analyses historical data and simulates hypothetical outcomes. It never places trades and never connects to exchange trading APIs."
-      >
-        Research tool — no live trading
-      </Badge>
+      <Tooltip>
+        <TooltipTrigger
+          render={<span className="ml-auto inline-flex" tabIndex={0} />}
+          aria-label="What this tool does and does not do"
+        >
+          <Badge
+            variant="outline"
+            className="border-warning/40 text-[10px] text-warning"
+          >
+            Research tool — no live trading
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-72 text-left leading-relaxed">
+          {HELP.badges.researchTool}
+        </TooltipContent>
+      </Tooltip>
     </header>
   );
 }

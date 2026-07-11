@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useRunSimulation } from "@/hooks/use-events";
 import { useTerminalState } from "@/hooks/use-terminal-state";
 import { ApiClientError } from "@/hooks/api";
+import { InfoHint } from "@/components/common/info-hint";
+import { HELP } from "@/lib/help-copy";
 import type { SimulationDTO } from "@/lib/db/serializers";
 import { cn } from "@/lib/utils";
 
@@ -79,18 +81,27 @@ export function SimForm({ defaultEntryPrice, onResult }: SimFormProps) {
     label: string,
     value: string,
     set: (v: string) => void,
-    placeholder?: string,
+    opts?: { placeholder?: string; hint?: string },
   ) => (
     <div className="space-y-1">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
+      <div className="flex items-center gap-1">
+        <Label htmlFor={id} className="text-xs">
+          {label}
+        </Label>
+        {opts?.hint && (
+          <InfoHint
+            hint={opts.hint}
+            label={`About ${label.toLowerCase()}`}
+            className="[&_svg]:size-3"
+          />
+        )}
+      </div>
       <Input
         id={id}
         inputMode="decimal"
         value={value}
         onChange={(e) => set(e.target.value)}
-        placeholder={placeholder}
+        placeholder={opts?.placeholder}
         className="h-8 font-mono text-sm"
         autoComplete="off"
       />
@@ -105,6 +116,14 @@ export function SimForm({ defaultEntryPrice, onResult }: SimFormProps) {
         onRun();
       }}
     >
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium">Direction</span>
+        <InfoHint
+          hint={HELP.sim.direction}
+          label="About long and short"
+          className="[&_svg]:size-3"
+        />
+      </div>
       <div
         className="grid grid-cols-2 gap-1 rounded-md bg-muted p-1"
         role="radiogroup"
@@ -132,16 +151,39 @@ export function SimForm({ defaultEntryPrice, onResult }: SimFormProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {field("sim-account", "Account (USDT)", accountSize, setAccountSize)}
-        {field("sim-margin", "Margin (USDT)", margin, setMargin)}
-        {field("sim-leverage", "Leverage", leverage, setLeverage)}
-        {field("sim-entry", "Entry price", entryPrice, setEntryPrice)}
-        {field("sim-sl", "Stop loss", stopLoss, setStopLoss, "optional")}
-        {field("sim-tp", "Take profit", takeProfit, setTakeProfit, "optional")}
-        {field("sim-exit", "Manual exit", exitPrice, setExitPrice, "optional")}
-        {field("sim-slippage", "Slippage %", slippage, setSlippage)}
-        {field("sim-taker", "Taker fee %", takerFee, setTakerFee)}
-        {field("sim-maker", "Maker fee %", makerFee, setMakerFee)}
+        {field("sim-account", "Account (USDT)", accountSize, setAccountSize, {
+          hint: HELP.sim.account,
+        })}
+        {field("sim-margin", "Margin (USDT)", margin, setMargin, {
+          hint: HELP.sim.margin,
+        })}
+        {field("sim-leverage", "Leverage", leverage, setLeverage, {
+          hint: HELP.sim.leverage,
+        })}
+        {field("sim-entry", "Entry price", entryPrice, setEntryPrice, {
+          hint: HELP.sim.entryPrice,
+        })}
+        {field("sim-sl", "Stop loss", stopLoss, setStopLoss, {
+          placeholder: "optional",
+          hint: HELP.sim.stopLoss,
+        })}
+        {field("sim-tp", "Take profit", takeProfit, setTakeProfit, {
+          placeholder: "optional",
+          hint: HELP.sim.takeProfit,
+        })}
+        {field("sim-exit", "Manual exit", exitPrice, setExitPrice, {
+          placeholder: "optional",
+          hint: HELP.sim.manualExit,
+        })}
+        {field("sim-slippage", "Slippage %", slippage, setSlippage, {
+          hint: HELP.sim.slippage,
+        })}
+        {field("sim-taker", "Taker fee %", takerFee, setTakerFee, {
+          hint: HELP.sim.takerFee,
+        })}
+        {field("sim-maker", "Maker fee %", makerFee, setMakerFee, {
+          hint: HELP.sim.makerFee,
+        })}
       </div>
 
       <Button
@@ -156,7 +198,8 @@ export function SimForm({ defaultEntryPrice, onResult }: SimFormProps) {
             : "Run simulation"}
       </Button>
       <p className="text-center text-[10px] text-muted-foreground">
-        Hypothetical replay against historical candles. Nothing is traded.
+        A practice replay against real historical prices. No real money —
+        nothing is ever traded.
       </p>
     </form>
   );
