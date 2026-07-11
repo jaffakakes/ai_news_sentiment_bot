@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BinanceAnnouncementProvider } from "./binance-announcement";
-import type { JsonFetcher } from "./twitter";
 
 const cmsFixture = JSON.parse(
   readFileSync(

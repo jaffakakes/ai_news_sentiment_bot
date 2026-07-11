@@ -14,11 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatInTimeZone } from "date-fns-tz";
 import { TimezoneSelect } from "./timezone-select";
 import { useTerminalState, type EventParams } from "@/hooks/use-terminal-state";
 import { useCreateEvent } from "@/hooks/use-events";
+import { useExtractNews } from "@/hooks/use-news";
 import { zonedInputToEpochMs } from "@/lib/time";
 import type { Interval, MarketType } from "@/lib/market/types";
+import type { ExtractNewsResponse } from "@/lib/news/registry";
 import { ApiClientError } from "@/hooks/api";
 
 const CATEGORIES = [
@@ -62,6 +65,68 @@ export function EventInputForm() {
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [category, setCategory] = useState<string>("OTHER");
+  const [newsUrl, setNewsUrl] = useState("");
+  const extractNews = useExtractNews();
+
+  const applyExtraction = (result: ExtractNewsResponse, pastedUrl: string) => {
+    const { news, suggested, warnings } = result;
+    setHeadline(news.headline);
+    setSource(news.publisher ?? news.source);
+    setUrl(news.canonicalUrl ?? pastedUrl);
+    if (news.summary && !notes) setNotes(news.summary);
+    if (suggested) {
+      setTicker(suggested.symbol);
+      setMarket(suggested.market);
+    }
+    if (news.publishedAt !== undefined) {
+      setTimezone("UTC");
+      setDatetime(
+        formatInTimeZone(news.publishedAt, "UTC", "yyyy-MM-dd'T'HH:mm:ss"),
+      );
+    }
+    for (const warning of warnings) toast.warning(warning);
+
+    // Auto-generate only when the chart would be meaningful: a detected
+    // ticker AND an exact (not day-precision) past timestamp. setState is
+    // async, so the params are built from the extraction values directly.
+    const canAutoGenerate =
+      suggested !== undefined &&
+      news.publishedAt !== undefined &&
+      news.publishedAtPrecision === "exact" &&
+      news.publishedAt <= Date.now();
+    if (canAutoGenerate) {
+      generate({
+        symbol: suggested.symbol,
+        exchange: "binance",
+        market: suggested.market,
+        interval: "1m",
+        eventTime: news.publishedAt!,
+        timezone: "UTC",
+        lookbackMinutes: Number(lookback) || 60,
+        lookforwardMinutes: Number(lookforward) || 120,
+        headline: news.headline,
+        source: news.publisher ?? news.source,
+        url: news.canonicalUrl ?? pastedUrl,
+        notes: notes || news.summary || undefined,
+        category,
+      });
+      toast.success(`Chart generated for ${suggested.symbol}`);
+    } else {
+      toast.info("Extracted — confirm the fields, then Generate.");
+    }
+  };
+
+  const onExtract = (candidateUrl?: string) => {
+    const target = (candidateUrl ?? newsUrl).trim();
+    if (!target) return;
+    extractNews.mutate(target, {
+      onSuccess: (result) => applyExtraction(result, target),
+      onError: (err) =>
+        toast.error(
+          err instanceof ApiClientError ? err.message : "Extraction failed",
+        ),
+    });
+  };
 
   const buildParams = (): EventParams | null => {
     if (!ticker.trim()) {
@@ -146,6 +211,49 @@ export function EventInputForm() {
         onGenerate();
       }}
     >
+      <div className="space-y-1.5">
+        <Label htmlFor="news-url">News URL</Label>
+        <div className="flex gap-1.5">
+          <Input
+            id="news-url"
+            type="url"
+            value={newsUrl}
+            onChange={(e) => setNewsUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onExtract();
+              }
+            }}
+            onPaste={(e) => {
+              const pasted = e.clipboardData.getData("text").trim();
+              if (/^https?:\/\/\S+$/.test(pasted)) {
+                e.preventDefault();
+                setNewsUrl(pasted);
+                onExtract(pasted);
+              }
+            }}
+            placeholder="Paste an article, tweet, or announcement…"
+            autoComplete="off"
+            className="min-w-0 flex-1"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onExtract()}
+            disabled={extractNews.isPending || !newsUrl.trim()}
+          >
+            {extractNews.isPending ? "Extracting…" : "Extract"}
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Auto-fills the fields below. Paywalled or bot-walled pages fail
+          honestly — no bypass is attempted.
+        </p>
+      </div>
+
+      <Separator />
+
       <div className="space-y-1.5">
         <Label htmlFor="ticker">Ticker</Label>
         <Input

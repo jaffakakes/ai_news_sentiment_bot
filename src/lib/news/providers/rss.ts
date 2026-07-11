@@ -26,13 +26,11 @@ export function parseFeedDocument(xml: string, feedUrl: string): ExtractedNews {
   const items: FeedItem[] = [];
   let channelTitle = "";
   let current: Partial<FeedItem> | null = null;
-  let path: string[] = [];
   let buffer = "";
 
   const parser = new Parser(
     {
       onopentag(name, attribs) {
-        path.push(name);
         buffer = "";
         if (name === "item" || name === "entry") {
           current = {};
@@ -65,7 +63,6 @@ export function parseFeedDocument(xml: string, feedUrl: string): ExtractedNews {
             current = null;
           }
         }
-        path.pop();
         buffer = "";
       },
     },
@@ -73,7 +70,6 @@ export function parseFeedDocument(xml: string, feedUrl: string): ExtractedNews {
   );
   parser.write(xml);
   parser.end();
-  void path;
 
   if (items.length === 0) {
     throw new NewsProviderError(
