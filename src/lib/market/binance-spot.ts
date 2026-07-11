@@ -3,12 +3,7 @@ import "server-only";
 import { binanceFetch, parseKlineRow } from "./binance-common";
 import { cacheKey, getCached, setCached } from "./cache";
 import { paginateKlines } from "./paginate";
-import type {
-  CandleQuery,
-  CandleResult,
-  Interval,
-  MarketProvider,
-} from "./types";
+import type { CandleQuery, CandleResult, MarketProvider } from "./types";
 
 // data-api.binance.vision is Binance's official mirror for public market
 // data — same /api/v3 shape, no auth, and available in regions where
@@ -21,7 +16,7 @@ export class BinanceSpotProvider implements MarketProvider {
   readonly exchange = "binance";
   readonly market = "spot" as const;
 
-  supportsInterval(_interval: Interval): boolean {
+  supportsInterval(): boolean {
     return true; // spot klines support 1s through 1h
   }
 

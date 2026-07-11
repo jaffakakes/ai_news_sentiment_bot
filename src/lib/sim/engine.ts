@@ -137,7 +137,6 @@ function walkCandles(params: {
 
   let runHigh = D(walked[0]!.high);
   let runLow = D(walked[0]!.low);
-  let liquidationBreached = false;
 
   const finish = (
     reason: ExitReason,
@@ -151,7 +150,7 @@ function walkCandles(params: {
     ambiguousCandle: ambiguous,
     runHigh,
     runLow,
-    liquidationBreached: liquidationBreached || reason === "liquidated",
+    liquidationBreached: reason === "liquidated",
   });
 
   for (const candle of walked) {
